@@ -4,7 +4,7 @@
 #include <time.h>
 
 #ifndef SIZE
-#define SIZE 100
+#define SIZE 1000
 #endif
 
 #ifndef SIZE_M
@@ -31,15 +31,15 @@ void mmult(double A[SIZE_M][SIZE_N],
 	double B[SIZE_N][SIZE_K],
 	double C[SIZE_M][SIZE_K])
 {
-	int    i, j, k;
+	int    m, k, n;
 	double sum;
-	for (i = 0; i < SIZE_M; i++) {
-		for (j = 0; j < SIZE_K; j++) {
+	for (m = 0; m < SIZE_M; m++) {
+		for (n = 0; n < SIZE_N; n++) {
 			sum = 0.0;
-			for (k = 0; k < SIZE_N; k++) {
-				sum += A[i][k] * B[k][j];
+			for (k = 0; k < SIZE_K; k++) {
+				sum += A[m][n] * B[n][k];
 			}
-			C[i][j] = sum;
+			C[m][k] = sum;
 		}
 	}
 }
