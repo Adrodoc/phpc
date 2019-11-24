@@ -19,6 +19,10 @@
 #define SIZE_K SIZE
 #endif
 
+#define BLOCK_SIZE 100
+
+#define SUPERMUC 1
+
 #define long_long_t long long
 
 static inline long_long_t timestamp();
@@ -33,13 +37,22 @@ void mmult(double A[SIZE_M][SIZE_N],
 {
 	int    m, k, n;
 	double sum;
-	for (m = 0; m < SIZE_M; m++) {
-		for (n = 0; n < SIZE_N; n++) {
+	for (m = 0; m < SIZE_M; m += BLOCK_SIZE) {
+		for (n = 0; n < SIZE_N; n += BLOCK_SIZE) {
 			sum = 0.0;
-			for (k = 0; k < SIZE_K; k++) {
-				sum += A[m][n] * B[n][k];
+			for (k = 0; k < SIZE_K; k += BLOCK_SIZE) {
+
+				for (int m2 = m; m2 < BLOCK_SIZE + m; m2++) {
+					for (int n2 = n; n2 < BLOCK_SIZE + n; n2++) {
+						for (int k2 = k; k2 < BLOCK_SIZE + k; k2++) {
+							if (n2 == 0)
+								C[m2][k2] = A[m2][n2] * B[n2][k2];
+							else
+								C[m2][k2] += A[m2][n2] * B[n2][k2];
+						}
+					}
+				}
 			}
-			C[m][k] = sum;
 		}
 	}
 }
@@ -106,16 +119,23 @@ int main(int argc, char* argv[])
 	/* Two FLOP in inner loop: add and mul */
 	nflop = 2.0 * (double)SIZE_M * (double)SIZE_N * (double)SIZE_K;
 
+#ifdef SUPERMUC
 	tstart = timestamp();
+#endif // SUPERMUC
+
 	mmult(A, B, C);
+#ifdef SUPERMUC
 	tstop = timestamp();
+#endif // SUPERMUC
 
 	/* Duration in nanoseconds.
 	 * FLOP/ns = GFLOP/s
 	 */
-	tmmult = (double)(tstop - tstart);
+#ifdef SUPERMUC
+	 tmmult = (double)(tstop - tstart);
+#endif // SUPERMUC
 
-	/* Sum matrix elements as correctness hint */
+	 /* Sum matrix elements as correctness hint */
 	validate(A, B, C);
 
 	sum = 0.0;
@@ -124,13 +144,16 @@ int main(int argc, char* argv[])
 	}
 	printf("Trace mmult: %12.12g\n", sum);
 	printf("M, N, K, tmmult_s, gflops_mmult\n");
+#ifdef SUPERMUC
 	printf("%d, %d, %d, %f, %f \n",
 		SIZE_M, SIZE_N, SIZE_K,
 		tmmult, nflop / tmmult);
+#endif // SUPERMUC
 
 	return 0;
 }
 
+#ifdef SUPERMUC
 static inline long_long_t timestamp()
 {
 	struct timespec ts;
@@ -139,3 +162,4 @@ static inline long_long_t timestamp()
 	timestamp = ts.tv_sec * 1000000000LL + ts.tv_nsec;
 	return timestamp;
 }
+#endif // SUPERMUC
