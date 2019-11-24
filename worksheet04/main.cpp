@@ -19,8 +19,6 @@
 #define SIZE_K SIZE
 #endif
 
-#define BLOCK_SIZE 400
-
 #define SUPERMUC 1
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
@@ -34,16 +32,20 @@ static inline long_long_t timestamp();
 //
 void mmult(double A[SIZE_M][SIZE_N],
 	double B[SIZE_N][SIZE_K],
-	double C[SIZE_M][SIZE_K])
+	double C[SIZE_M][SIZE_K],
+	int block_size
+)
 {
-	int    m, k, n;
-	for (m = 0; m < SIZE_M; m += BLOCK_SIZE) {
-		for (n = 0; n < SIZE_N; n += BLOCK_SIZE) {
-			for (k = 0; k < SIZE_K; k += BLOCK_SIZE) {
 
-				for (int m2 = m; m2 < MIN(BLOCK_SIZE + m, SIZE_M); m2++) {
-					for (int n2 = n; n2 < MIN(BLOCK_SIZE + n, SIZE_N); n2++) {
-						for (int k2 = k; k2 < MIN(BLOCK_SIZE + k, SIZE_K); k2++) {
+
+	int    m, k, n;
+	for (m = 0; m < SIZE_M; m += block_size) {
+		for (n = 0; n < SIZE_N; n += block_size) {
+			for (k = 0; k < SIZE_K; k += block_size) {
+
+				for (int m2 = m; m2 < MIN(block_size + m, SIZE_M); m2++) {
+					for (int n2 = n; n2 < MIN(block_size + n, SIZE_N); n2++) {
+						for (int k2 = k; k2 < MIN(block_size + k, SIZE_K); k2++) {
 							if (n2 == 0)
 								C[m2][k2] = A[m2][n2] * B[n2][k2];
 							else
@@ -118,36 +120,43 @@ int main(int argc, char* argv[])
 	/* Two FLOP in inner loop: add and mul */
 	nflop = 2.0 * (double)SIZE_M * (double)SIZE_N * (double)SIZE_K;
 
+
+
+	for (int block_size = 50; block_size < SIZE; block_size += 50) {
+
+
 #ifdef SUPERMUC
-	tstart = timestamp();
+		tstart = timestamp();
 #endif // SUPERMUC
 
-	mmult(A, B, C);
+		mmult(A, B, C, block_size);
 #ifdef SUPERMUC
-	tstop = timestamp();
+		tstop = timestamp();
 #endif // SUPERMUC
 
-	/* Duration in nanoseconds.
-	 * FLOP/ns = GFLOP/s
-	 */
+		/* Duration in nanoseconds.
+		 * FLOP/ns = GFLOP/s
+		 */
 #ifdef SUPERMUC
-	 tmmult = (double)(tstop - tstart);
+		tmmult = (double)(tstop - tstart);
 #endif // SUPERMUC
 
-	 /* Sum matrix elements as correctness hint */
-	validate(A, B, C);
+		/* Sum matrix elements as correctness hint */
+		validate(A, B, C);
 
-	sum = 0.0;
-	for (i = 0; i < SIZE_M && i < SIZE_K; i++) {
-		sum += C[i][i];
+		sum = 0.0;
+		for (i = 0; i < SIZE_M && i < SIZE_K; i++) {
+			sum += C[i][i];
+		}
+		printf("block_size:%d\n", block_size);
+		printf("Trace mmult: %12.12g\n", sum);
+		printf("M, N, K, tmmult_s, gflops_mmult\n");
+#ifdef SUPERMUC
+		printf("%d, %d, %d, %f, %f \n",
+			SIZE_M, SIZE_N, SIZE_K,
+			tmmult, nflop / tmmult);
+#endif // SUPERMUC
 	}
-	printf("Trace mmult: %12.12g\n", sum);
-	printf("M, N, K, tmmult_s, gflops_mmult\n");
-#ifdef SUPERMUC
-	printf("%d, %d, %d, %f, %f \n",
-		SIZE_M, SIZE_N, SIZE_K,
-		tmmult, nflop / tmmult);
-#endif // SUPERMUC
 
 	return 0;
 }
