@@ -19,10 +19,9 @@
 #define SIZE_K SIZE
 #endif
 
-#define BLOCK_SIZE 209
+#define BLOCK_SIZE 200
 
 #define SUPERMUC 1
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 #define long_long_t long long
 
@@ -38,11 +37,11 @@ void mmult(double A[SIZE_M][SIZE_N],
 {
 	int    m, k, n;
 	for (m = 0; m < SIZE_M; m += BLOCK_SIZE) {
-		int m2max = MIN(BLOCK_SIZE + m, SIZE_M);
+		int m2max = BLOCK_SIZE + m;
 		for (n = 0; n < SIZE_N; n += BLOCK_SIZE) {
-			int n2max = MIN(BLOCK_SIZE + n, SIZE_N);
+			int n2max = BLOCK_SIZE + n;
 			for (k = 0; k < SIZE_K; k += BLOCK_SIZE) {
-				int k2max = MIN(BLOCK_SIZE + k, SIZE_K);
+				int k2max = BLOCK_SIZE + k;
 				for (int m2 = m; m2 < m2max; m2++) {
 					for (int n2 = n; n2 < n2max; n2++) {
 						for (int k2 = k; k2 < k2max; k2++) {
