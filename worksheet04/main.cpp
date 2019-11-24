@@ -19,7 +19,7 @@
 #define SIZE_K SIZE
 #endif
 
-#define BLOCK_SIZE 400
+#define BLOCK_SIZE 209
 
 #define SUPERMUC 1
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
@@ -38,19 +38,26 @@ void mmult(double A[SIZE_M][SIZE_N],
 {
 	int    m, k, n;
 	for (m = 0; m < SIZE_M; m += BLOCK_SIZE) {
+		int m2max = MIN(BLOCK_SIZE + m, SIZE_M);
 		for (n = 0; n < SIZE_N; n += BLOCK_SIZE) {
+			int n2max = MIN(BLOCK_SIZE + n, SIZE_N);
 			for (k = 0; k < SIZE_K; k += BLOCK_SIZE) {
+				int k2max = MIN(BLOCK_SIZE + k, SIZE_K);
+				for (int m2 = m; m2 < m2max; m2++) {
+					for (int n2 = n; n2 < n2max; n2++) {
+						for (int k2 = k; k2 < k2max; k2++) {
 
-				for (int m2 = m; m2 < MIN(BLOCK_SIZE + m, SIZE_M); m2++) {
-					for (int n2 = n; n2 < MIN(BLOCK_SIZE + n, SIZE_N); n2++) {
-						for (int k2 = k; k2 < MIN(BLOCK_SIZE + k, SIZE_K); k2++) {
 							if (n2 == 0)
 								C[m2][k2] = A[m2][n2] * B[n2][k2];
 							else
 								C[m2][k2] += A[m2][n2] * B[n2][k2];
+
 						}
+
 					}
+
 				}
+
 			}
 		}
 	}
@@ -116,13 +123,14 @@ int main(int argc, char* argv[])
 	}
 
 	/* Two FLOP in inner loop: add and mul */
-	nflop = 2.0 * (double)SIZE_M * (double)SIZE_N * (double)SIZE_K;
+	nflop = 2.0 * (double)SIZE_M * (double)SIZE_N * (double)SIZE_K * 10;
 
 #ifdef SUPERMUC
 	tstart = timestamp();
 #endif // SUPERMUC
-
-	mmult(A, B, C);
+	for (int i = 0; i < 10; i++) {
+		mmult(A, B, C);
+	}
 #ifdef SUPERMUC
 	tstop = timestamp();
 #endif // SUPERMUC
@@ -131,10 +139,10 @@ int main(int argc, char* argv[])
 	 * FLOP/ns = GFLOP/s
 	 */
 #ifdef SUPERMUC
-	 tmmult = (double)(tstop - tstart);
+	tmmult = (double)(tstop - tstart);
 #endif // SUPERMUC
 
-	 /* Sum matrix elements as correctness hint */
+	/* Sum matrix elements as correctness hint */
 	validate(A, B, C);
 
 	sum = 0.0;
