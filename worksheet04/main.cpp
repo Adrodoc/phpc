@@ -44,12 +44,14 @@ void mmult(double A[SIZE_M][SIZE_N],
 				int n2max = BLOCK_SIZE + n;
 				for (int m2 = m; m2 < m2max; m2++) {
 					for (int k2 = k; k2 < k2max; k2++) {
+						double sum = 0.0;
 						for (int n2 = n; n2 < n2max; n2++) {
-							if (n2 == 0)
-								C[m2][k2] = A[m2][n2] * B[k2][n2];
-							else
-								C[m2][k2] += A[m2][n2] * B[k2][n2];
+							sum += A[m2][n2] * B[k2][n2];
 						}
+						if (n == 0)
+							C[m2][k2] = sum;
+						else
+							C[m2][k2] += sum;
 					}
 
 				}
