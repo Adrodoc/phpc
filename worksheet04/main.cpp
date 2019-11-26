@@ -32,27 +32,24 @@ static inline long_long_t timestamp();
 // (M x N) * (N x K) -> (M x K)
 //
 void mmult(double A[SIZE_M][SIZE_N],
-	double B[SIZE_N][SIZE_K],
+	double B[SIZE_K][SIZE_N],
 	double C[SIZE_M][SIZE_K])
 {
 	int    m, k, n;
 	for (m = 0; m < SIZE_M; m += BLOCK_SIZE) {
 		int m2max = BLOCK_SIZE + m;
-		for (n = 0; n < SIZE_N; n += BLOCK_SIZE) {
-			int n2max = BLOCK_SIZE + n;
-			for (k = 0; k < SIZE_K; k += BLOCK_SIZE) {
-				int k2max = BLOCK_SIZE + k;
+		for (k = 0; k < SIZE_K; k += BLOCK_SIZE) {
+			int k2max = BLOCK_SIZE + k;
+			for (n = 0; n < SIZE_N; n += BLOCK_SIZE) {
+				int n2max = BLOCK_SIZE + n;
 				for (int m2 = m; m2 < m2max; m2++) {
-					for (int n2 = n; n2 < n2max; n2++) {
-						for (int k2 = k; k2 < k2max; k2++) {
-
+					for (int k2 = k; k2 < k2max; k2++) {
+						for (int n2 = n; n2 < n2max; n2++) {
 							if (n2 == 0)
-								C[m2][k2] = A[m2][n2] * B[n2][k2];
+								C[m2][k2] = A[m2][n2] * B[k2][n2];
 							else
-								C[m2][k2] += A[m2][n2] * B[n2][k2];
-
+								C[m2][k2] += A[m2][n2] * B[k2][n2];
 						}
-
 					}
 
 				}
@@ -63,7 +60,7 @@ void mmult(double A[SIZE_M][SIZE_N],
 }
 
 void mmult_orig(double A[SIZE_M][SIZE_N],
-	double B[SIZE_N][SIZE_K],
+	double B[SIZE_K][SIZE_N],
 	double C[SIZE_M][SIZE_K])
 {
 	int    i, j, k;
@@ -80,7 +77,7 @@ void mmult_orig(double A[SIZE_M][SIZE_N],
 }
 
 void validate(double A[SIZE_M][SIZE_N],
-	double B[SIZE_N][SIZE_K],
+	double B[SIZE_K][SIZE_N],
 	double C[SIZE_M][SIZE_K]
 ) {
 	double D[SIZE_M][SIZE_K];
@@ -95,7 +92,7 @@ void validate(double A[SIZE_M][SIZE_N],
 }
 
 double A[SIZE_M][SIZE_N];
-double B[SIZE_N][SIZE_K];
+double B[SIZE_K][SIZE_N];
 double C[SIZE_M][SIZE_K];
 
 int main(int argc, char* argv[])
