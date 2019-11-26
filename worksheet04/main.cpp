@@ -19,7 +19,7 @@
 #define SIZE_K SIZE
 #endif
 
-#define BLOCK_SIZE 2
+#define BLOCK_SIZE 40
 
 #define SUPERMUC 1
 
