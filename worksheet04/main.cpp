@@ -33,13 +33,13 @@ static inline long_long_t timestamp();
 //
 void mmult(double A[SIZE_M][SIZE_N],
 	double B[SIZE_K][SIZE_N],
-	double C[SIZE_M][SIZE_K])
+	double C[SIZE_M][SIZE_K], int block_size)
 {
 	int    m, k, n;
-	for (m = 0; m < SIZE_M; m += BLOCK_SIZE) {
-		int m2max = BLOCK_SIZE + m;
-		for (k = 0; k < SIZE_K; k += BLOCK_SIZE) {
-			int k2max = BLOCK_SIZE + k;
+	for (m = 0; m < SIZE_M; m += block_size) {
+		int m2max = block_size + m;
+		for (k = 0; k < SIZE_K; k += block_size) {
+			int k2max = block_size + k;
 			for (int m2 = m; m2 < m2max; m2++) {
 				for (int k2 = k; k2 < k2max; k2++) {
 					double sum = 0.0;
@@ -112,14 +112,18 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	int a[12] = {2, 4, 8, 10, 20, 25, 40, 50, 100, 200, 250, 500};
+
+	for (int index = 0; index < 12; index++)	{
+		int block_size = a[index];
 	/* Two FLOP in inner loop: add and mul */
 	nflop = 2.0 * (double)SIZE_M * (double)SIZE_N * (double)SIZE_K * 10;
 
 #ifdef SUPERMUC
 	tstart = timestamp();
 #endif // SUPERMUC
-	for (int i = 0; i < 10; i++) {
-		mmult(A, B, C);
+	for (i = 0; i < 10; i++) {
+		mmult(A, B, C, block_size);
 	}
 #ifdef SUPERMUC
 	tstop = timestamp();
@@ -139,6 +143,7 @@ int main(int argc, char* argv[])
 	for (i = 0; i < SIZE_M && i < SIZE_K; i++) {
 		sum += C[i][i];
 	}
+	printf("block_size: %d\n", block_size);
 	printf("Trace mmult: %12.12g\n", sum);
 	printf("M, N, K, tmmult_s, gflops_mmult\n");
 #ifdef SUPERMUC
@@ -146,6 +151,7 @@ int main(int argc, char* argv[])
 		SIZE_M, SIZE_N, SIZE_K,
 		tmmult, nflop / tmmult);
 #endif // SUPERMUC
+	}
 
 	return 0;
 }
