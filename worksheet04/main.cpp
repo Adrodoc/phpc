@@ -19,7 +19,7 @@
 #define SIZE_K SIZE
 #endif
 
-#define BLOCK_SIZE 40
+#define BLOCK_SIZE 2
 
 #define SUPERMUC 1
 
@@ -40,22 +40,14 @@ void mmult(double A[SIZE_M][SIZE_N],
 		int m2max = BLOCK_SIZE + m;
 		for (k = 0; k < SIZE_K; k += BLOCK_SIZE) {
 			int k2max = BLOCK_SIZE + k;
-			for (n = 0; n < SIZE_N; n += BLOCK_SIZE) {
-				int n2max = BLOCK_SIZE + n;
-				for (int m2 = m; m2 < m2max; m2++) {
-					for (int k2 = k; k2 < k2max; k2++) {
-						double sum = 0.0;
-						for (int n2 = n; n2 < n2max; n2++) {
-							sum += A[m2][n2] * B[k2][n2];
-						}
-						if (n == 0)
-							C[m2][k2] = sum;
-						else
-							C[m2][k2] += sum;
+			for (int m2 = m; m2 < m2max; m2++) {
+				for (int k2 = k; k2 < k2max; k2++) {
+					double sum = 0.0;
+					for (n = 0; n < SIZE_N; n++) {
+						sum += A[m2][n] * B[k2][n];
 					}
-
+					C[m2][k2] = sum;
 				}
-
 			}
 		}
 	}
