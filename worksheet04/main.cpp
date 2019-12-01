@@ -19,7 +19,9 @@
 #define SIZE_K SIZE
 #endif
 
-#define BLOCK_SIZE 40
+#define BLOCK_SIZE_M 16
+#define BLOCK_SIZE_N 64
+#define BLOCK_SIZE_K 32
 
 #define SUPERMUC 1
 
@@ -31,17 +33,17 @@ static inline long_long_t timestamp();
 // C = A*B
 // (M x N) * (N x K) -> (M x K)
 //
-void mmult(double A[SIZE_M][SIZE_N],
-	double B[SIZE_K][SIZE_N],
-	double C[SIZE_M][SIZE_K])
+void mmult(double A[SIZE_M + 24][SIZE_N + 24],
+	double B[SIZE_K + 24][SIZE_N + 24],
+	double C[SIZE_M + 24][SIZE_K + 24])
 {
 	int    m, k, n;
-	for (m = 0; m < SIZE_M; m += BLOCK_SIZE) {
-		int m2max = BLOCK_SIZE + m;
-		for (k = 0; k < SIZE_K; k += BLOCK_SIZE) {
-			int k2max = BLOCK_SIZE + k;
-			for (n = 0; n < SIZE_N; n += BLOCK_SIZE) {
-				int n2max = BLOCK_SIZE + n;
+	for (m = 0; m < SIZE_M; m += BLOCK_SIZE_M) {
+		int m2max = BLOCK_SIZE_M + m;
+		for (k = 0; k < SIZE_K; k += BLOCK_SIZE_K) {
+			int k2max = BLOCK_SIZE_K + k;
+			for (n = 0; n < SIZE_N; n += BLOCK_SIZE_N) {
+				int n2max = BLOCK_SIZE_N + n;
 				for (int m2 = m; m2 < m2max; m2++) {
 					for (int k2 = k; k2 < k2max; k2++) {
 						double sum = 0.0;
@@ -53,17 +55,15 @@ void mmult(double A[SIZE_M][SIZE_N],
 						else
 							C[m2][k2] += sum;
 					}
-
 				}
-
 			}
 		}
 	}
 }
 
-void mmult_orig(double A[SIZE_M][SIZE_N],
-	double B[SIZE_K][SIZE_N],
-	double C[SIZE_M][SIZE_K])
+void mmult_orig(double A[SIZE_M + 24][SIZE_N + 24],
+	double B[SIZE_K + 24][SIZE_N + 24],
+	double C[SIZE_M + 24][SIZE_K + 24])
 {
 	int    i, j, k;
 	double sum;
@@ -78,11 +78,11 @@ void mmult_orig(double A[SIZE_M][SIZE_N],
 	}
 }
 
-void validate(double A[SIZE_M][SIZE_N],
-	double B[SIZE_K][SIZE_N],
-	double C[SIZE_M][SIZE_K]
+void validate(double A[SIZE_M + 24][SIZE_N + 24],
+	double B[SIZE_K + 24][SIZE_N + 24],
+	double C[SIZE_M + 24][SIZE_K + 24]
 ) {
-	double D[SIZE_M][SIZE_K];
+	double D[SIZE_M + 24][SIZE_K + 24];
 	mmult_orig(A, B, D);
 	for (int i = 0; i < SIZE_M; i++) {
 		for (int j = 0; j < SIZE_K; j++) {
@@ -92,10 +92,6 @@ void validate(double A[SIZE_M][SIZE_N],
 		}
 	}
 }
-
-//double A[SIZE_M][SIZE_N];
-//double B[SIZE_K][SIZE_N];
-//double C[SIZE_M][SIZE_K];
 
 int main(int argc, char* argv[])
 {
@@ -108,17 +104,23 @@ int main(int argc, char* argv[])
 
 	printf("Problem size: %d x %d\n", SIZE, SIZE);
 
-	double(*A)[SIZE_M];//[SIZE_N];
-	double(*B)[SIZE_K];//[SIZE_N];
-	double(*C)[SIZE_M];// [SIZE_K] ;
+	double(*A)[SIZE_M+24];
+	double(*B)[SIZE_K + 24];
+	double(*C)[SIZE_M + 24];
 	size_t alignment = 64;
-	posix_memalign((void**)&A, alignment, SIZE_M * SIZE_N);
-	posix_memalign((void**)&B, alignment, SIZE_K * SIZE_N);
-	posix_memalign((void**)&C, alignment, SIZE_M * SIZE_K);
+#ifdef SUPERMUC
+	posix_memalign((void**)&A, alignment, (SIZE_M + 24) * (SIZE_N + 24) * sizeof(double));
+	posix_memalign((void**)&B, alignment, (SIZE_K + 24) * (SIZE_N + 24) * sizeof(double));
+	posix_memalign((void**)&C, alignment, (SIZE_M + 24) * (SIZE_K + 24) * sizeof(double));
+#else
+	A = (double(*)[SIZE_M]) malloc(SIZE_M * SIZE_N * sizeof(double));
+	B = (double(*)[SIZE_K]) malloc(SIZE_K * SIZE_N * sizeof(double));
+	C = (double(*)[SIZE_M]) malloc(SIZE_M * SIZE_K * sizeof(double));
+#endif // SUPERMUC
 
 	for (i = 0; i < SIZE_M; i++) {
 		for (j = 0; j < SIZE_N; j++) {
-			A[i][j] = (double)(i)+(double)(j);
+			A[i][j] = (double)i + (double)j;
 		}
 	}
 
