@@ -93,9 +93,9 @@ void validate(double A[SIZE_M][SIZE_N],
 	}
 }
 
-double A[SIZE_M][SIZE_N];
-double B[SIZE_K][SIZE_N];
-double C[SIZE_M][SIZE_K];
+//double A[SIZE_M][SIZE_N];
+//double B[SIZE_K][SIZE_N];
+//double C[SIZE_M][SIZE_K];
 
 int main(int argc, char* argv[])
 {
@@ -107,6 +107,14 @@ int main(int argc, char* argv[])
 	double      tmmult;
 
 	printf("Problem size: %d x %d\n", SIZE, SIZE);
+
+	double(*A)[SIZE_M];//[SIZE_N];
+	double(*B)[SIZE_K];//[SIZE_N];
+	double(*C)[SIZE_M];// [SIZE_K] ;
+	size_t alignment = 64;
+	posix_memalign((void**)&A, alignment, SIZE_M * SIZE_N);
+	posix_memalign((void**)&B, alignment, SIZE_K * SIZE_N);
+	posix_memalign((void**)&C, alignment, SIZE_M * SIZE_K);
 
 	for (i = 0; i < SIZE_M; i++) {
 		for (j = 0; j < SIZE_N; j++) {
@@ -154,6 +162,10 @@ int main(int argc, char* argv[])
 		SIZE_M, SIZE_N, SIZE_K,
 		tmmult, nflop / tmmult);
 #endif // SUPERMUC
+
+	free(A);
+	free(B);
+	free(C);
 
 	return 0;
 }
