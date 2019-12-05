@@ -1,7 +1,13 @@
+#define SUPERMUC 1
+//#define PAPI 1
 #define __GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+
+#ifdef PAPI
+#include <papi.h>
+#endif // PAPI
 
 #ifndef SIZE
 #define SIZE 1000
@@ -19,11 +25,11 @@
 #define SIZE_K SIZE
 #endif
 
-#define BLOCK_SIZE_M 16
-#define BLOCK_SIZE_N 64
-#define BLOCK_SIZE_K 32
+#define BLOCK_SIZE_M 40
+#define BLOCK_SIZE_N 40
+#define BLOCK_SIZE_K 40
 
-#define SUPERMUC 1
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 #define long_long_t long long
 
@@ -33,9 +39,9 @@ static inline long_long_t timestamp();
 // C = A*B
 // (M x N) * (N x K) -> (M x K)
 //
-void mmult(double A[SIZE_M + 24][SIZE_N + 24],
-	double B[SIZE_K + 24][SIZE_N + 24],
-	double C[SIZE_M + 24][SIZE_K + 24])
+void mmult(double A[SIZE_M][SIZE_N],
+	double B[SIZE_K][SIZE_N],
+	double C[SIZE_M][SIZE_K])
 {
 	int    m, k, n;
 	for (m = 0; m < SIZE_M; m += BLOCK_SIZE_M) {
@@ -61,9 +67,9 @@ void mmult(double A[SIZE_M + 24][SIZE_N + 24],
 	}
 }
 
-void mmult_orig(double A[SIZE_M + 24][SIZE_N + 24],
-	double B[SIZE_K + 24][SIZE_N + 24],
-	double C[SIZE_M + 24][SIZE_K + 24])
+void mmult_orig(double A[SIZE_M][SIZE_N],
+	double B[SIZE_K][SIZE_N],
+	double C[SIZE_M][SIZE_K])
 {
 	int    i, j, k;
 	double sum;
@@ -78,11 +84,11 @@ void mmult_orig(double A[SIZE_M + 24][SIZE_N + 24],
 	}
 }
 
-void validate(double A[SIZE_M + 24][SIZE_N + 24],
-	double B[SIZE_K + 24][SIZE_N + 24],
-	double C[SIZE_M + 24][SIZE_K + 24]
+void validate(double A[SIZE_M][SIZE_N],
+	double B[SIZE_K][SIZE_N],
+	double C[SIZE_M][SIZE_K]
 ) {
-	double D[SIZE_M + 24][SIZE_K + 24];
+	double D[SIZE_M][SIZE_K];
 	mmult_orig(A, B, D);
 	for (int i = 0; i < SIZE_M; i++) {
 		for (int j = 0; j < SIZE_K; j++) {
@@ -104,14 +110,14 @@ int main(int argc, char* argv[])
 
 	printf("Problem size: %d x %d\n", SIZE, SIZE);
 
-	double(*A)[SIZE_M+24];
-	double(*B)[SIZE_K + 24];
-	double(*C)[SIZE_M + 24];
+	double(*A)[SIZE_M];
+	double(*B)[SIZE_K];
+	double(*C)[SIZE_M];
 	size_t alignment = 64;
 #ifdef SUPERMUC
-	posix_memalign((void**)&A, alignment, (SIZE_M + 24) * (SIZE_N + 24) * sizeof(double));
-	posix_memalign((void**)&B, alignment, (SIZE_K + 24) * (SIZE_N + 24) * sizeof(double));
-	posix_memalign((void**)&C, alignment, (SIZE_M + 24) * (SIZE_K + 24) * sizeof(double));
+	posix_memalign((void**)&A, alignment, (SIZE_M) * (SIZE_N) * sizeof(double));
+	posix_memalign((void**)&B, alignment, (SIZE_K) * (SIZE_N) * sizeof(double));
+	posix_memalign((void**)&C, alignment, (SIZE_M) * (SIZE_K) * sizeof(double));
 #else
 	A = (double(*)[SIZE_M]) malloc(SIZE_M * SIZE_N * sizeof(double));
 	B = (double(*)[SIZE_K]) malloc(SIZE_K * SIZE_N * sizeof(double));
@@ -133,15 +139,35 @@ int main(int argc, char* argv[])
 	/* Two FLOP in inner loop: add and mul */
 	nflop = 2.0 * (double)SIZE_M * (double)SIZE_N * (double)SIZE_K * 10;
 
+#ifdef PAPI
+	int events[3] = { PAPI_L1_DCM, PAPI_L2_DCM, PAPI_L3_DCM };
+	int numEvents = 3;
+	if (PAPI_start_counters(events, numEvents) != PAPI_OK) {
+		printf("kaputt\n");
+		return 1;
+	}
+#endif // PAPI
 #ifdef SUPERMUC
 	tstart = timestamp();
 #endif // SUPERMUC
+
 	for (int i = 0; i < 10; i++) {
 		mmult(A, B, C);
 	}
+
 #ifdef SUPERMUC
 	tstop = timestamp();
 #endif // SUPERMUC
+#ifdef PAPI
+	long long values[3];
+	if (PAPI_stop_counters(values, numEvents) != PAPI_OK) {
+		printf("kaputt\n");
+		return 1;
+	}
+	printf("PAPI_L1_DCM=%lld", values[0]);
+	printf("PAPI_L2_DCM=%lld", values[0]);
+	printf("PAPI_L3_DCM=%lld", values[0]);
+#endif // PAPI
 
 	/* Duration in nanoseconds.
 	 * FLOP/ns = GFLOP/s
